@@ -1,3 +1,4 @@
+import os
 import socket
 import json
 from multiprocessing import shared_memory, resource_tracker
@@ -81,25 +82,28 @@ def verifying_transaction(data):
 #Конвертация статуса опреации в числовой формат
 def convert_status(status):
     if status == 'ok':
-        return 200
+        return 20
     elif status == 'failed':
-        return 403
+        return 43
     elif status == 'cancelled':
-        return 400
+        return 40
     elif status == 'timeout':
-        return 408
+        return 48
     elif status == 'tryagain':
-        return 503
+        return 53
     else:
-        return 500
+        return 50
 
 
 #Чтение файла SM; Возвращение массива типа: сумма, ip адресс
 def read_sm_input():
     SHM_NAME = 'cds_input'
-    shm = shared_memory.SharedMemory(name=SHM_NAME)
-    buffer = shm.buf
-    return [buffer[0], str(buffer[1]) + '.' + str(buffer[2]) + '.' + str(buffer[3]) + '.' + str(buffer[4])]
+    shm_a = shared_memory.SharedMemory(name=SHM_NAME)
+    buffer = shm_a.buf
+    data_arr = [buffer[0], str(buffer[1]) + '.' + str(buffer[2]) + '.' + str(buffer[3]) + '.' + str(buffer[4])]
+    shm_a.close()
+    shm_a.unlink()
+    return data_arr
 
 
 #Создание тестовых данных
@@ -130,22 +134,28 @@ def delete_old_output():
 #Создание выходного файла
 def create_sm_output(status):
     SHM_NAME = 'cds_output'
-    shm = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=16)
-    shm.buf[0] = int(status)
-    resource_tracker.unregister(shm._name, 'shared_memory')
+    shm_c = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=16)
+    shm_c.buf[0] = int(status)
+    resource_tracker.unregister(shm_c._name, 'shared_memory')
     print("Save data output")
+
+#Создание текстового файла, в котором лежит статус
+def create_output(status):
+    if os.path.exists("/home/root/CODESYS_WRK/py/output.txt"):
+        os.remove("/home/root/CODESYS_WRK/py/output.txt")
+    my_file = open("/home/root/CODESYS_WRK/py/output.txt", "w+")
+    my_file.write(status)
+    my_file.close()
 
 
 def main():
-    delete_old_output() #Удаляем старые данные при наличии
-    create_sm_input() #Создаем тестовые данные (должен создавать аппарат)
+    #delete_old_output() #Удаляем старые данные при наличии
+    #create_sm_input() #Создаем тестовые данные (должен создавать аппарат)
     data_arr = read_sm_input() #Читаем данные в массив
 
     #Отслеживание подключения к аппарату
     CONNECT = True
     HOST = data_arr[1]
-
-    print(HOST)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((HOST, PORT))
@@ -171,8 +181,9 @@ def main():
 
         CONNECT = False
         status = convert_status(data.get("status"))
-        print(status)
-        create_sm_output(status)
+        create_output(str(status))
+        #create_sm_output(status)
+
 
     except Exception as e:
         print(f"Error: {e}")
@@ -182,6 +193,7 @@ def main():
         #В случае обрыва связи - прекращение сессии
         if CONNECT:
             send_finish(sock)
+            create_output(str(50))
         sock.close()
 
 
