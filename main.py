@@ -31,6 +31,7 @@ def send(sock, data):
         print(f"Error wtf: {e}")
 
 
+#Преобразование sock
 def recvall(sock, n):
     data = b''
     while len(data) < n:
@@ -60,6 +61,7 @@ def send_keep_alive(sock):
     return send(sock, data)
 
 
+#Команда завершения сессии
 def send_finish(sock):
     data = b'{\
                 "keep-alive-status": "cancelled"\
@@ -68,7 +70,7 @@ def send_finish(sock):
     return send(sock, data)
 
 
-# Check while
+# Проверка текущей опреации
 def verifying_transaction(data):
     if data.get("reply") != "transaction":
         return False
@@ -76,6 +78,7 @@ def verifying_transaction(data):
         return True
 
 
+#Конвертация статуса опреации в числовой формат
 def convert_status(status):
     if status == 'ok':
         return 200
@@ -91,6 +94,7 @@ def convert_status(status):
         return 500
 
 
+#Чтение файла SM; Возвращение массива типа: сумма, ip адресс
 def read_sm_input():
     SHM_NAME = 'cds_input'
     shm = shared_memory.SharedMemory(name=SHM_NAME)
@@ -98,6 +102,7 @@ def read_sm_input():
     return [buffer[0], str(buffer[1]) + '.' + str(buffer[2]) + '.' + str(buffer[3]) + '.' + str(buffer[4])]
 
 
+#Создание тестовых данных
 def create_sm_input():
     SHM_NAME = 'cds_input'
     shm = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=16)
@@ -110,6 +115,7 @@ def create_sm_input():
     print("Save data input")
 
 
+#Проверка на наличие выходного файла, при наличии - удаление
 def delete_old_output():
     SHM_NAME = 'cds_output'
     try:
@@ -121,6 +127,7 @@ def delete_old_output():
         print("No find old data output")
 
 
+#Создание выходного файла
 def create_sm_output(status):
     SHM_NAME = 'cds_output'
     shm = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=16)
@@ -130,10 +137,11 @@ def create_sm_output(status):
 
 
 def main():
-    delete_old_output()
-    create_sm_input()
-    data_arr = read_sm_input()
+    delete_old_output() #Удаляем старые данные при наличии
+    create_sm_input() #Создаем тестовые данные (должен создавать аппарат)
+    data_arr = read_sm_input() #Читаем данные в массив
 
+    #Отслеживание подключения к аппарату
     CONNECT = True
     HOST = data_arr[1]
 
@@ -171,6 +179,7 @@ def main():
 
     finally:
         print(f"Closing connection")
+        #В случае обрыва связи - прекращение сессии
         if CONNECT:
             send_finish(sock)
         sock.close()
