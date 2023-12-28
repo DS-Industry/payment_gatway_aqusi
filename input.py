@@ -100,7 +100,8 @@ def read_sm_input():
     SHM_NAME = 'cds_input'
     shm_a = shared_memory.SharedMemory(name=SHM_NAME)
     buffer = shm_a.buf
-    data_arr = [buffer[0], str(buffer[1]) + '.' + str(buffer[2]) + '.' + str(buffer[3]) + '.' + str(buffer[4])]
+    #Формируем сумму и ip из байтов
+    data_arr = [str(buffer[0]) + str(buffer[1]) + str(buffer[2]) + str(buffer[3]), str(buffer[4]) + '.' + str(buffer[5]) + '.' + str(buffer[6]) + '.' + str(buffer[7])]
     shm_a.close()
     shm_a.unlink()
     return data_arr
@@ -110,11 +111,14 @@ def read_sm_input():
 def create_sm_input():
     SHM_NAME = 'cds_input'
     shm = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=16)
-    shm.buf[0] = 100
-    shm.buf[1] = 192
-    shm.buf[2] = 168
-    shm.buf[3] = 53
-    shm.buf[4] = 154
+    shm.buf[0] = 0
+    shm.buf[1] = 0
+    shm.buf[2] = 1
+    shm.buf[3] = 0
+    shm.buf[4] = 192
+    shm.buf[5] = 168
+    shm.buf[6] = 53
+    shm.buf[7] = 154
     resource_tracker.unregister(shm._name, 'shared_memory')
     print("Save data input")
 
@@ -161,7 +165,7 @@ def main():
     sock.connect((HOST, PORT))
 
     try:
-        amount = '{:.2f}'.format(data_arr[0])
+        amount = '{:.2f}'.format(int(data_arr[0]))
         print(f"Sending Transaction with amount {amount}...")
         data = send_transaction(sock, amount)
 
